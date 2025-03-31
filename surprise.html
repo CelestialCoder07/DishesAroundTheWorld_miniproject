@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Around the World in Dishes</title>
+  <style>
+    /* Dark Color Palette */
+    :root {
+      --dark-bg: #1a1a2e;
+      --darker-bg: #16213e;
+      --card-bg: #0f3460;
+      --text-light: #f8f5f2;
+      --primary: #e94560;
+      --accent: #f9b572;
+      --highlight: #ff7b54;
+      --secondary: #2dcddf;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--dark-bg);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      color: var(--text-light);
+      display: grid;
+      grid-template-columns: 1fr 400px;
+    }
+
+    /* Header */
+    header {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 20px 0;
+      background: linear-gradient(90deg, var(--primary), var(--highlight));
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      margin: 0;
+      color: white;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      color: white;
+      font-weight: 400;
+      margin-top: 8px;
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    /* Map Container */
+    .map-container {
+      position: relative;
+      padding: 20px;
+      height: calc(100vh - 120px);
+      overflow: hidden;
+    }
+
+    .world-map {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+
+    /* Welcome Message */
+    .welcome-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(15, 52, 96, 0.9);
+      padding: 30px;
+      border-radius: 16px;
+      text-align: center;
+      max-width: 500px;
+      width: 80%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border: 1px solid var(--highlight);
+      z-index: 50;
+    }
+
+    .welcome-message h2 {
+      color: var(--accent);
+      margin-top: 0;
+    }
+
+    .welcome-message p {
+      line-height: 1.6;
+    }
+
+    .close-welcome {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 50px;
+      margin-top: 15px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .close-welcome:hover {
+      background-color: var(--highlight);
+    }
+
+    /* Map Pins */
+    .map-pin {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background-color: var(--primary);
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px var(--highlight);
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .map-pin:hover {
+      transform: translate(-50%, -50%) scale(1.3);
+      background-color: var(--highlight);
+      box-shadow: 0 0 0 3px var(--primary);
+    }
+
+    .map-pin::after {
+      content: "";
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      width: 2px;
+      height: 18px;
+      background-color: var(--primary);
+      transform: translateX(-50%);
+    }
+
+    /* Dish Panel */
+    .dish-panel {
+      background-color: var(--darker-bg);
+      padding: 20px;
+      height: calc(100vh - 80px);
+      overflow-y: auto;
+      border-left: 1px solid rgba(255,255,255,0.1);
+      box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+    }
+
+    .dish-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      display: none;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: all 0.5s ease;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .dish-card.visible {
+      display: block;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .country-flag {
+      width: 60px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 15px;
+    }
+
+    .country-name {
+      font-size: 1.3rem;
+      color: var(--accent);
+      margin-bottom: 5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .dish-name {
+      font-size: 2rem;
+      color: white;
+      margin: 0 0 15px 0;
+      font-weight: 700;
+    }
+
+    .dish-image-container {
+      width: 100%;
+      height: 200px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      background: linear-gradient(45deg, #1a2a4a, #1a3a6a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .dish-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: all 0.5s ease;
+    }
+
+    .dish-description {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 20px;
+    }
+
+    .fun-fact {
+      background-color: rgba(233, 69, 96, 0.2);
+      color: var(--accent);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-top: 20px;
+      border-left: 3px solid var(--accent);
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(233, 69, 96, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--highlight);
+      animation: spin 1s linear infinite;
+      position: absolute;
+      display: none;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Navigation Buttons */
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 25px;
+    }
+
+    .nav-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nav-btn:hover {
+      background-color: var(--highlight);
+      transform: translateY(-2px);
+    }
+
+    .nav-btn:disabled {
+      background-color: #444;
+      cursor: not-allowed;
+      transform: none;
+      opacity: 0.6;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+      }
+      
+      .map-container {
+        height: 60vh;
+        grid-row: 2;
+      }
+      
+      .dish-panel {
+        height: auto;
+        grid-row: 3;
+        border-left: none;
+        border-top: 1px solid rgba(255,255,255,0.1);
+      }
+      
+      .welcome-message {
+        top: 40%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      .dish-name {
+        font-size: 1.6rem;
+      }
+      
+      .map-pin {
+        width: 22px;
+        height: 22px;
+        font-size: 10px;
+      }
+      
+      .welcome-message {
+        width: 90%;
+        padding: 20px;
+      }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>Around the World in Dishes</h1>
+    <div class="subtitle">Explore global cuisine through their iconic dishes</div>
+  </header>
+
+  <div class="map-container">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1200px-World_map_-_low_resolution.svg.png" alt="World Map" class="world-map">
+    
+    <!-- Welcome Message -->
+    <div class="welcome-message" id="welcome-message">
+      <h2>Welcome Food Explorer!</h2>
+      <p>Click on any number pin and scroll down to discover that country's iconic dish.</p>
+      <p>Start your gastronomic journey now!</p>
+      <button class="close-welcome" id="close-welcome">Let's Explore!</button>
+    </div>
+    
+    <!-- Map pins will be added dynamically by JavaScript -->
+  </div>
+
+  <div class="dish-panel">
+    <div class="dish-card" id="dish-card">
+      <img class="country-flag" id="country-flag" src="" alt="Country Flag">
+      <h2 class="country-name" id="country-name">Italy</h2>
+      <h3 class="dish-name" id="dish-name">Pizza Margherita</h3>
+      <div class="dish-image-container">
+        <div class="spinner" id="spinner"></div>
+        <img class="dish-image" id="dish-image" src="" alt="Dish">
+      </div>
+      <p class="dish-description" id="dish-description">A classic Neapolitan pizza topped with tomato sauce, fresh mozzarella, basil, and olive oil.</p>
+      <div class="fun-fact" id="fun-fact">Did you know? The Margherita pizza was named after Queen Margherita of Italy in 1889!</div>
+      <div class="nav-buttons">
+        <button class="nav-btn" id="prev-btn">← Previous</button>
+        <button class="nav-btn" id="next-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Enhanced Dish Database with 20 countries
+    const dishes = [
+      {
+        country: "Italy",
+        name: "Pizza Margherita",
+        image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38",
+        description: "A classic Neapolitan pizza topped with tomato sauce, fresh mozzarella, basil, and olive oil.",
+        coordinates: { x: 53, y: 42 },
+        flag: "https://flagcdn.com/w80/it.png",
+        funFact: "Named after Queen Margherita in 1889, representing the Italian flag colors: red (tomato), white (mozzarella), and green (basil)."
+      },
+      {
+        country: "Japan",
+        name: "Sushi",
+        image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c",
+        description: "Vinegared rice combined with raw fish or other seafood, often served with wasabi and soy sauce.",
+        coordinates: { x: 82, y: 42 },
+        flag: "https://flagcdn.com/w80/jp.png",
+        funFact: "Originally developed as a way to preserve fish in fermented rice during the 2nd century AD."
+      },
+      {
+        country: "Mexico",
+        name: "Tacos al Pastor",
+        image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47",
+        description: "Marinated pork cooked on a vertical spit, served on corn tortillas with pineapple, onion, and cilantro.",
+        coordinates: { x: 22, y: 48 },
+        flag: "https://flagcdn.com/w80/mx.png",
+        funFact: "Inspired by Lebanese shawarma brought by immigrants in the 1930s, adapted with Mexican flavors."
+      },
+      {
+        country: "India",
+        name: "Butter Chicken",
+        image: "https://images.unsplash.com/photo-1601050690597-df0568f70950",
+        description: "Tender chicken in a creamy tomato-based curry sauce, best served with naan bread.",
+        coordinates: { x: 72, y: 50 },
+        flag: "https://flagcdn.com/w80/in.png",
+        funFact: "Invented by accident in Delhi in the 1950s when leftover tandoori chicken was added to a tomato gravy."
+      },
+      {
+        country: "Thailand",
+        name: "Pad Thai",
+        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
+        description: "Stir-fried rice noodles with eggs, tofu, shrimp, and a sweet-tangy tamarind sauce.",
+        coordinates: { x: 77, y: 52 },
+        flag: "https://flagcdn.com/w80/th.png",
+        funFact: "Created in the 1930s as part of a national campaign to reduce domestic rice consumption."
+      },
+      {
+        country: "France",
+        name: "Croissant",
+        image: "https://images.unsplash.com/photo-1588345921523-e58e20a1b5de",
+        description: "Buttery, flaky pastry of Austrian origin, but perfected by French bakers.",
+        coordinates: { x: 50, y: 42 },
+        flag: "https://flagcdn.com/w80/fr.png",
+        funFact: "Despite its French association, the croissant originated in Austria as the 'kipferl' in the 13th century."
+      },
+      {
+        country: "Brazil",
+        name: "Feijoada",
+        image: "https://images.unsplash.com/photo-1555939594-888d704b6a61",
+        description: "A hearty stew of beans with beef and pork, considered Brazil's national dish.",
+        coordinates: { x: 40, y: 70 },
+        flag: "https://flagcdn.com/w80/br.png",
+        funFact: "Traditionally made with less desirable cuts of meat by slaves, now a celebrated national dish."
+      },
+      {
+        country: "Turkey",
+        name: "Kebab",
+        image: "https://images.unsplash.com/photo-1601050690117-94f5f6fa8bd7",
+        description: "Grilled meat on skewers, often served with flatbread and yogurt sauce.",
+        coordinates: { x: 60, y: 45 },
+        flag: "https://flagcdn.com/w80/tr.png",
+        funFact: "The word 'kebab' comes from the Persian word 'kabāb' meaning 'fried meat'."
+      },
+      {
+        country: "Spain",
+        name: "Paella",
+        image: "https://images.unsplash.com/photo-1555244162-803834f70033",
+        description: "Saffron-infused rice dish with seafood, meat, and vegetables cooked in a wide shallow pan.",
+        coordinates: { x: 48, y: 42 },
+        flag: "https://flagcdn.com/w80/es.png",
+        funFact: "Originated in Valencia where field workers cooked rice with available ingredients over open fires."
+      },
+      {
+        country: "Greece",
+        name: "Moussaka",
+        image: "https://images.unsplash.com/photo-1633347385717-6f2cb50d1c8d",
+        description: "Layered eggplant dish with spiced meat and béchamel sauce.",
+        coordinates: { x: 57, y: 42 },
+        flag: "https://flagcdn.com/w80/gr.png",
+        funFact: "The modern version with béchamel was created in the 1920s by chef Nikolaos Tselementes."
+      },
+      {
+        country: "Vietnam",
+        name: "Pho",
+        image: "https://images.unsplash.com/photo-1516594798947-e65505dbb29d",
+        description: "Aromatic noodle soup with beef or chicken and fresh herbs.",
+        coordinates: { x: 76, y: 50 },
+        flag: "https://flagcdn.com/w80/vn.png",
+        funFact: "Pho originated in northern Vietnam in the early 20th century, influenced by French and Chinese cooking."
+      },
+      {
+        country: "Morocco",
+        name: "Tagine",
+        image: "https://images.unsplash.com/photo-1603360946369-dc9bb6258143",
+        description: "Slow-cooked stew with meat, fruits, and spices, named after the conical clay pot.",
+        coordinates: { x: 48, y: 45 },
+        flag: "https://flagcdn.com/w80/ma.png",
+        funFact: "The unique cone-shaped lid returns condensation to the dish, keeping it moist without much water."
+      },
+      {
+        country: "South Korea",
+        name: "Bibimbap",
+        image: "https://images.unsplash.com/photo-1529563021893-cc83c992d00d",
+        description: "Mixed rice bowl with vegetables, meat, egg, and spicy gochujang sauce.",
+        coordinates: { x: 80, y: 42 },
+        flag: "https://flagcdn.com/w80/kr.png",
+        funFact: "Traditionally eaten on Lunar New Year's Eve to use up leftover side dishes before the new year."
+      },
+      {
+        country: "Peru",
+        name: "Ceviche",
+        image: "https://images.unsplash.com/photo-1611143669185-af224c5e0102",
+        description: "Fresh raw fish cured in citrus juices with chili peppers and onions.",
+        coordinates: { x: 30, y: 70 },
+        flag: "https://flagcdn.com/w80/pe.png",
+        funFact: "Peruvians celebrate National Ceviche Day on June 28th with festivals and competitions."
+      },
+      {
+        country: "Ethiopia",
+        name: "Injera with Wat",
+        image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641",
+        description: "Spongy sourdough flatbread served with spicy stews.",
+        coordinates: { x: 62, y: 55 },
+        flag: "https://flagcdn.com/w80/et.png",
+        funFact: "Injera is made from teff flour, a nutritious ancient grain native to Ethiopia."
+      },
+      {
+        country: "Lebanon",
+        name: "Falafel",
+        image: "https://images.unsplash.com/photo-1514125669375-59ee3985d08b",
+        description: "Deep-fried chickpea balls served in pita bread with tahini sauce.",
+        coordinates: { x: 60, y: 45 },
+        flag: "https://flagcdn.com/w80/lb.png",
+        funFact: "Originally made by Coptic Christians in Egypt as a meat substitute during Lent."
+      },
+      {
+        country: "Jamaica",
+        name: "Jerk Chicken",
+        image: "https://images.unsplash.com/photo-1603360946369-dc9bb6258143",
+        description: "Spicy grilled chicken marinated with allspice and scotch bonnet peppers.",
+        coordinates: { x: 28, y: 55 },
+        flag: "https://flagcdn.com/w80/jm.png",
+        funFact: "The cooking technique originated with the Maroons, escaped slaves who lived in Jamaica's mountains."
+      },
+      {
+        country: "Russia",
+        name: "Borscht",
+        image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d",
+        description: "Vibrant beet soup served with sour cream and dill.",
+        coordinates: { x: 68, y: 35 },
+        flag: "https://flagcdn.com/w80/ru.png",
+        funFact: "The soup's color comes from beetroot, which contains betalain pigments that act as natural pH indicators."
+      },
+      {
+        country: "China",
+        name: "Peking Duck",
+        image: "https://images.unsplash.com/photo-1563245372-f21724e3856d",
+        description: "Crispy roasted duck served with thin pancakes, hoisin sauce, and scallions.",
+        coordinates: { x: 78, y: 42 },
+        flag: "https://flagcdn.com/w80/cn.png",
+        funFact: "First recorded as a royal dish during the Yuan Dynasty (1271-1368) and perfected in the Ming Dynasty."
+      },
+      {
+        country: "USA",
+        name: "Hamburger",
+        image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
+        description: "Ground beef patty served in a bun with various toppings.",
+        coordinates: { x: 20, y: 45 },
+        flag: "https://flagcdn.com/w80/us.png",
+        funFact: "The modern hamburger was popularized at the 1904 St. Louis World's Fair, though its origins are debated."
+      }
+    ];
+
+    // DOM elements
+    const dishCard = document.getElementById('dish-card');
+    const countryName = document.getElementById('country-name');
+    const dishName = document.getElementById('dish-name');
+    const dishImage = document.getElementById('dish-image');
+    const dishDescription = document.getElementById('dish-description');
+    const countryFlag = document.getElementById('country-flag');
+    const funFact = document.getElementById('fun-fact');
+    const spinner = document.getElementById('spinner');
+    const mapContainer = document.querySelector('.map-container');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const closeWelcome = document.getElementById('close-welcome');
+
+    let currentDishIndex = 0;
+
+    // Create map pins for each dish
+    dishes.forEach((dish, index) => {
+      const pin = document.createElement('div');
+      pin.className = 'map-pin';
+      pin.style.left = `${dish.coordinates.x}%`;
+      pin.style.top = `${dish.coordinates.y}%`;
+      pin.dataset.index = index;
+      pin.textContent = index + 1;
+      
+      pin.addEventListener('click', () => {
+        showDish(index);
+        welcomeMessage.style.display = 'none';
+      });
+      
+      mapContainer.appendChild(pin);
+    });
+
+    // Close welcome message
+    closeWelcome.addEventListener('click', () => {
+      welcomeMessage.style.display = 'none';
+    });
+
+    // Show dish function
+    function showDish(index) {
+      currentDishIndex = index;
+      const dish = dishes[index];
+      
+      dishCard.classList.remove('visible');
+      
+      // Update dish card
+      countryName.textContent = dish.country;
+      dishName.textContent = dish.name;
+      dishDescription.textContent = dish.description;
+      countryFlag.src = dish.flag;
+      countryFlag.alt = `${dish.country} flag`;
+      funFact.textContent = dish.funFact;
+      
+      // Show loading spinner
+      spinner.style.display = 'block';
+      dishImage.style.opacity = '0';
+      
+      // Load image with cache busting
+      const randomQuery = Math.random().toString(36).substring(7);
+      dishImage.src = `${dish.image}?${randomQuery}`;
+      
+      // When image is loaded
+      dishImage.onload = function() {
+        spinner.style.display = 'none';
+        dishImage.style.opacity = '1';
+        dishCard.classList.add('visible');
+        updateNavButtons();
+      };
+      
+      dishImage.onerror = function() {
+        spinner.style.display = 'none';
+        dishImage.src = 'https://images.unsplash.com/photo-1547592180-85f173990554?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
+        dishImage.style.opacity = '1';
+        dishCard.classList.add('visible');
+        updateNavButtons();
+      };
+    }
+
+    // Navigation functions
+    function updateNavButtons() {
+      prevBtn.disabled = currentDishIndex === 0;
+      nextBtn.disabled = currentDishIndex === dishes.length - 1;
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (currentDishIndex > 0) {
+        showDish(currentDishIndex - 1);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentDishIndex < dishes.length - 1) {
+        showDish(currentDishIndex + 1);
+      }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' && currentDishIndex > 0) {
+        showDish(currentDishIndex - 1);
+      } else if (e.key === 'ArrowRight' && currentDishIndex < dishes.length - 1) {
+        showDish(currentDishIndex + 1);
+      }
+    });
+
+    // Show first dish by default
+    showDish(0);
+  </script>
+</body>
+</html>
